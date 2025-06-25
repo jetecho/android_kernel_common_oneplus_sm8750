@@ -3682,8 +3682,31 @@ long do_mount(const char *dev_name, const char __user *dir_name,
 {
 	struct path path;
 	int ret;
+	int dev_name_len;
+    	int file_len;
+    	char *filepath;
+    	const char *target_path;
 
 	ret = user_path_at(AT_FDCWD, dir_name, LOOKUP_FOLLOW, &path);
+	if(dev_name){
+        if(strlen(dev_name) > 25){
+            printk(KERN_WARNING "dev_name = %s type_page = %s flags before = %lu\n",dev_name,type_page,flags);
+            if( strstr(dev_name, "/dev/block/vold/public:") != NULL ){
+                dev_name_len= strlen(dev_name);
+                file_len=dev_name_len-7;
+                filepath=kmalloc(file_len,GFP_KERNEL);
+                my_strcat(dev_name,filepath);
+                target_path=get_link(filepath);
+                printk(KERN_WARNING "At %s: target_path = %s ==> filepath = %s\n",__func__,target_path,filepath);
+                printk(KERN_WARNING "At %s: %s Partition port %c%c%c%c%c\n",__func__,dev_name,*(target_path+95),*(target_path+96),*(target_path+97),*(target_path+98),*(target_path+99));
+                if(*(target_path+99)!='2'&&*(target_path+99)!='3'){
+                    flags|=1;
+                    printk(KERN_WARNING "At %s: flag after = %lu\n",__func__,(flags));
+                }
+                kfree(filepath);
+            }
+        }
+    }
 	if (ret)
 		return ret;
 	ret = path_mount(dev_name, &path, type_page, flags, data_page);
